@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Intermediate Flask Prep</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: the glassware sits on the left and fills as you go; one big current step on the right with the checklist under it. White bench-sheet look, single light theme on purpose. */
+:root {
+  --bg: #ffffff;
+  --ink: #17212b;
+  --muted: #5d6a77;
+  --line: #dde4ea;
+  --soft: #f2f6f9;
+  --accent: #1c6cd3;
+  --accent-ink: #ffffff;
+  --done: #1c9553;
+  --done-soft: #e6f5ec;
+  --liquid: #acd8f5;
+  --liquid-edge: #5eaee6;
+  --glass: #2a3642;
+  --warn: #c2410c;
+  --font: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.45; }
+.wrap {
+  max-width: 1000px; margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px;
+}
+header h1 { margin: 0; font-size: 1.6rem; text-wrap: balance; }
+header p { margin: 4px 0 0; color: var(--muted); }
+
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tab {
+  font: inherit; font-weight: 700; font-size: 1rem;
+  padding: 10px 18px; border-radius: 999px; cursor: pointer;
+  border: 2px solid var(--line); background: var(--bg); color: var(--ink);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.tab .tick { color: var(--done); }
+.tab[aria-selected="true"] .tick { color: var(--accent-ink); }
+.tab small { font-weight: 400; opacity: .8; }
+
+.main { display: grid; grid-template-columns: minmax(220px, 330px) minmax(0, 1fr); gap: 32px; align-items: start; }
+.flaskcol { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.visual { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#flask { width: 100%; max-width: 260px; height: auto; display: block; }
+#tubes { width: 100%; max-width: 330px; height: auto; display: block; }
+.legend { font-size: .85rem; color: var(--muted); text-align: center; }
+.legend b { color: var(--ink); }
+.flaskmeta { display: flex; flex-direction: column; gap: 8px; align-items: center; width: 100%; }
+.flaskname { font-weight: 700; font-size: 1.15rem; text-align: center; }
+.flaskname span { display: block; font-weight: 400; color: var(--muted); font-size: .95rem; }
+.bar { width: 100%; max-width: 240px; height: 10px; background: var(--soft); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+.bar i { display: block; height: 100%; width: 0; background: var(--done); transition: width .5s ease; }
+.count { color: var(--muted); font-size: .95rem; font-variant-numeric: tabular-nums; }
+
+.stepcol { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.note { padding: 10px 14px; border-radius: 10px; background: var(--soft); color: var(--ink); font-size: .98rem; }
+.note b { font-weight: 700; }
+.note .warnline { color: var(--warn); font-weight: 700; }
+
+.current { border: 2px solid var(--accent); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.current.finished { border-color: var(--done); background: var(--done-soft); }
+.current.asking { border-color: var(--warn); }
+.eyebrow { font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.bigtext { font-size: 1.6rem; font-weight: 700; line-height: 1.2; margin: 0; text-wrap: balance; }
+.amt { font-family: var(--mono); font-weight: 600; font-size: 1.5rem; color: var(--accent); }
+.toolline { color: var(--muted); }
+.hint { color: var(--muted); font-size: .95rem; margin: 0; }
+.go {
+  font: inherit; font-size: 1.25rem; font-weight: 700;
+  min-height: 60px; width: 100%; border: 0; border-radius: 12px; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink);
+}
+.go.green { background: var(--done); }
+.go:disabled { opacity: .6; cursor: default; }
+.go:active:not(:disabled) { transform: translateY(1px); }
+.pair { display: grid; grid-template-columns: 1fr; gap: 10px; }
+
+.result { width: 100%; border-collapse: collapse; font-size: 1.02rem; }
+.result th { text-align: left; font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding: 4px 0; border-bottom: 2px solid var(--line); }
+.result td { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.result td + td, .result th + th { text-align: right; font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums; padding-left: 12px; }
+.result th + th { font-family: var(--font); }
+
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.list li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.list .num { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: .9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.list .what { min-width: 0; }
+.list .vol { font-family: var(--mono); font-weight: 500; color: var(--muted); text-align: right; white-space: nowrap; }
+.list li.done .num { background: var(--done); border-color: var(--done); color: #ffffff; }
+.list li.done .what { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+.list li.now { background: var(--soft); border-radius: 8px; }
+.list li.now .num { border-color: var(--accent); color: var(--accent); }
+.list li.now .what { font-weight: 700; }
+
+.tools { display: flex; gap: 10px; flex-wrap: wrap; }
+.small {
+  font: inherit; font-size: .95rem; padding: 10px 14px; border-radius: 10px; cursor: pointer;
+  background: var(--bg); color: var(--ink); border: 1.5px solid var(--line);
+}
+.small.warn { border-color: var(--warn); color: var(--warn); }
+.small:disabled { opacity: .45; cursor: default; }
+
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.liq { transition: transform .9s ease; }
+.cap { transition: opacity .4s ease; }
+.outline { transition: stroke .3s ease; }
+
+@media (max-width: 720px) {
+  .main { grid-template-columns: 1fr; gap: 16px; }
+  .flaskcol { position: static; }
+  #flask { max-width: 150px; }
+  #tubes { max-width: 360px; }
+  .bigtext { font-size: 1.35rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .liq, .cap, .bar i, .outline { transition: none; }
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Intermediate flask prep</h1>
+    <p>Do each step, then tap the big button. The glassware fills as you go.</p>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <div class="main">
+    <div class="flaskcol">
+      <div class="visual" id="flaskwrap">
+        <svg id="flask" viewBox="0 0 200 310" role="img" aria-label="Flask filling up">
+          <defs>
+            <clipPath id="inside">
+              <path d="M88 26 L88 150 C 50 158 22 190 22 232 C 22 270 40 292 70 296 L130 296 C 160 292 178 270 178 232 C 178 190 150 158 112 150 L112 26 Z"/>
+            </clipPath>
+          </defs>
+          <rect id="stream" x="97" y="0" width="6" height="0" rx="3" style="fill: var(--liquid-edge); opacity: 0"/>
+          <g clip-path="url(#inside)">
+            <rect id="liquid" class="liq" x="0" y="0" width="200" height="330" style="fill: var(--liquid); transform: translateY(310px)"/>
+          </g>
+          <path id="flaskline" class="outline" d="M88 26 L88 150 C 50 158 22 190 22 232 C 22 270 40 292 70 296 L130 296 C 160 292 178 270 178 232 C 178 190 150 158 112 150 L112 26 Z" fill="none" style="stroke: var(--glass)" stroke-width="4" stroke-linejoin="round"/>
+          <path d="M82 26 L118 26" style="stroke: var(--glass)" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <line x1="80" y1="70" x2="120" y2="70" style="stroke: var(--glass)" stroke-width="2.5"/>
+          <text x="126" y="74" style="fill: var(--glass); font: 600 12px var(--mono)">200 mL</text>
+          <rect id="cap" class="cap" x="83" y="6" width="34" height="20" rx="5" style="fill: var(--glass); opacity: 0"/>
+          <circle id="drop" cx="100" cy="0" r="6" style="fill: var(--liquid-edge); opacity: 0"/>
+        </svg>
+      </div>
+      <div class="visual" id="tubewrap" hidden>
+        <svg id="tubes" viewBox="0 0 310 240" role="img" aria-label="Seven 50 mL tubes filling up"></svg>
+        <div class="legend">Top number: <b>Pb, Cd, Cr, As, Ni</b> (ppb)<br>Bottom number: <b>Hg</b> (ppb) · line = 50 mL</div>
+      </div>
+      <div class="flaskmeta">
+        <div class="flaskname" id="flaskname"></div>
+        <div class="bar"><i id="bar"></i></div>
+        <div class="count" id="count"></div>
+      </div>
+    </div>
+
+    <div class="stepcol">
+      <div class="note" id="note"></div>
+      <section class="current" id="current" aria-live="polite"></section>
+      <ol class="list" id="list"></ol>
+      <div class="tools">
+        <button class="small" id="undo" type="button">Undo last step</button>
+        <button class="small" id="reset" type="button">Start this one over</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var ALL = "all";
+  var STATIONS = [
+    {
+      type: "flask", name: "Flask 1", sub: "Intermediate A",
+      note: "<b>Work in the fume hood.</b> This flask uses the 1000 ppm stocks.",
+      steps: [
+        { kind: "pour", text: "Pour diluent until the flask is about half full", amt: "~100 mL", tool: "Pour", level: 0.45 },
+        { kind: "add", text: "Add concentrated HCl", amt: "2 mL", tool: "5 mL pipette", level: 0.48 },
+        { kind: "add", text: "Add 100 ppm gold", amt: "400 µL", tool: "P1000 pipette", level: 0.51 },
+        { kind: "add", text: "Add Pb stock (1000 ppm)", amt: "2 mL", tool: "5 mL pipette", level: 0.54 },
+        { kind: "add", text: "Add Cd stock (1000 ppm)", amt: "2 mL", tool: "5 mL pipette", level: 0.57 },
+        { kind: "add", text: "Add Cr stock (1000 ppm)", amt: "2 mL", tool: "5 mL pipette", level: 0.60 },
+        { kind: "add", text: "Add As stock (1000 ppm)", amt: "2 mL", tool: "5 mL pipette", level: 0.63 },
+        { kind: "add", text: "Add Ni stock (1000 ppm)", amt: "2 mL", tool: "5 mL pipette", level: 0.66 },
+        { kind: "add", text: "Add Hg stock (1000 ppm)", amt: "200 µL", tool: "P200 pipette", level: 0.69 },
+        { kind: "fill", text: "Fill with diluent to the 200 mL line", amt: "to the line", tool: "Pour, then dropper", level: 1, hint: "Pour until close, then use the dropper. The bottom of the curve sits on the line." },
+        { kind: "mix", text: "Cap it and turn it upside down 10 times", amt: "10×", tool: "Cap on tight", level: 1 }
+      ],
+      head: ["Metal", "Amount"],
+      result: [["Pb", "10 ppm"], ["Cd", "10 ppm"], ["Cr", "10 ppm"], ["As", "10 ppm"], ["Ni", "10 ppm"], ["Hg", "1 ppm"]],
+      label: "Label it: Intermediate A, today’s date, your initials."
+    },
+    {
+      type: "flask", name: "Flask 2", sub: "Intermediate B",
+      note: "<b>Make this fresh</b> the day you make the curve.",
+      needs: 0, needsText: "Finish Flask 1 first. You need it for step 4.",
+      steps: [
+        { kind: "pour", text: "Pour diluent until the flask is about half full", amt: "~100 mL", tool: "Pour", level: 0.45 },
+        { kind: "add", text: "Add concentrated HCl", amt: "2 mL", tool: "5 mL pipette", level: 0.48 },
+        { kind: "add", text: "Add 100 ppm gold", amt: "400 µL", tool: "P1000 pipette", level: 0.51 },
+        { kind: "add", text: "Add Flask 1 (Intermediate A)", amt: "2 mL", tool: "5 mL pipette", level: 0.54, hint: "Mix Flask 1 well before you pipette from it." },
+        { kind: "fill", text: "Fill with diluent to the 200 mL line", amt: "to the line", tool: "Pour, then dropper", level: 1, hint: "Pour until close, then use the dropper. The bottom of the curve sits on the line." },
+        { kind: "mix", text: "Cap it and turn it upside down 10 times", amt: "10×", tool: "Cap on tight", level: 1 }
+      ],
+      head: ["Metal", "Amount"],
+      result: [["Pb", "100 ppb"], ["Cd", "100 ppb"], ["Cr", "100 ppb"], ["As", "100 ppb"], ["Ni", "100 ppb"], ["Hg", "10 ppb"]],
+      label: "Label it: Intermediate B, today’s date, your initials."
+    },
+    {
+      type: "tubes", name: "Cal tubes", sub: "Seven 50 mL centrifuge tubes",
+      note: "Everything here comes from <b>Flask 2</b>. The lower number on each standard is mercury.",
+      needs: 1, needsText: "Finish Flask 2 first. Every tube uses it.",
+      tubes: [["Blank", ""], ["0.2", "0.02"], ["0.5", "0.05"], ["1", "0.1"], ["5", "0.5"], ["10", "1"], ["50", "5"]],
+      steps: [
+        { kind: "label", text: "Label 7 tubes: Blank, 0.2, 0.5, 1, 5, 10, 50", amt: "7 tubes", tool: "Marker", to: ALL },
+        { kind: "pour", text: "Pour diluent into every tube", amt: "~20 mL each", tool: "Pour", to: ALL, vol: 20 },
+        { kind: "add", text: "Add concentrated HCl to every tube", amt: "0.5 mL each", tool: "P1000 pipette", to: ALL, vol: 0.5 },
+        { kind: "add", text: "Add 100 ppm gold to every tube", amt: "100 µL each", tool: "P200 pipette", to: ALL, vol: 0.1 },
+        { kind: "add", text: "Add Flask 2 to the 0.2 tube", amt: "100 µL", tool: "P200 pipette", to: [1], vol: 0.1, hint: "The Blank gets no Flask 2. Mix Flask 2 well first. Use a fresh tip for each tube." },
+        { kind: "add", text: "Add Flask 2 to the 0.5 tube", amt: "250 µL", tool: "P1000 pipette", to: [2], vol: 0.25 },
+        { kind: "add", text: "Add Flask 2 to the 1 tube", amt: "500 µL", tool: "P1000 pipette", to: [3], vol: 0.5 },
+        { kind: "add", text: "Add Flask 2 to the 5 tube", amt: "2.5 mL", tool: "5 mL pipette", to: [4], vol: 2.5 },
+        { kind: "add", text: "Add Flask 2 to the 10 tube", amt: "5 mL", tool: "5 mL pipette", to: [5], vol: 5 },
+        { kind: "add", text: "Add Flask 2 to the 50 tube", amt: "25 mL", tool: "5 mL pipette, 5 times", to: [6], vol: 25 },
+        { kind: "fill", text: "Fill every tube with diluent to the 50 mL line", amt: "to 50 mL", tool: "Pour, then dropper", to: ALL, hint: "Read the line at eye level." },
+        { kind: "mix", text: "Cap every tube and turn them upside down 10 times", amt: "10×", tool: "Caps on tight", to: ALL }
+      ],
+      head: ["Standard", "Hg (ppb)", "Pb, Cd, Cr, As, Ni (ppb)"],
+      result: [["Cal Blank", "0", "0"], ["Cal Std 0.02; 0.2", "0.02", "0.2"], ["Cal Std 0.05; 0.5", "0.05", "0.5"], ["Cal Std 0.1; 1", "0.1", "1"], ["Cal Std 0.5; 5", "0.5", "5"], ["Cal Std 1; 10", "1", "10"], ["Cal Std 5; 50", "5", "50"]],
+      label: "Your curve is ready for the ICP-MS."
+    }
+  ];
+
+  var FLIPS = 10;
+  var KEY = "flaskprep.v2";
+  var reduce = false;
+  try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+
+  var state = { cur: 0, done: [0, 0, 0], confirm: [false, false, false] };
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (saved && Array.isArray(saved.done) && saved.done.length === 3) state = saved;
+  } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var mixing = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var svg = $("flask"), liquid = $("liquid"), drop = $("drop"), stream = $("stream"), cap = $("cap");
+  var canAnimate = !reduce && !!svg.animate;
+
+  /* ---------- tubes drawing ---------- */
+  var NS = "http://www.w3.org/2000/svg";
+  var TW = 26, TGAP = 42, TX0 = 16, TOP = 24, MARK = 42, STRAIGHT = 160, TIP = 190;
+  var tubeEls = [];
+  (function buildTubes() {
+    var t = $("tubes"), defs = document.createElementNS(NS, "defs");
+    t.appendChild(defs);
+    STATIONS[2].tubes.forEach(function (lab, k) {
+      var x = TX0 + k * TGAP, cx = x + TW / 2;
+      var d = "M" + x + " " + TOP + " L" + x + " " + STRAIGHT + " L" + cx + " " + TIP + " L" + (x + TW) + " " + STRAIGHT + " L" + (x + TW) + " " + TOP + " Z";
+      var cp = document.createElementNS(NS, "clipPath"); cp.setAttribute("id", "tc" + k);
+      var cpp = document.createElementNS(NS, "path"); cpp.setAttribute("d", d); cp.appendChild(cpp); defs.appendChild(cp);
+
+      var g = document.createElementNS(NS, "g");
+      g.style.transformOrigin = cx + "px " + ((TOP + TIP) / 2) + "px";
+      var lg = document.createElementNS(NS, "g"); lg.setAttribute("clip-path", "url(#tc" + k + ")");
+      var liq = document.createElementNS(NS, "rect");
+      liq.setAttribute("x", x - 2); liq.setAttribute("y", 0); liq.setAttribute("width", TW + 4); liq.setAttribute("height", 200);
+      liq.setAttribute("class", "liq"); liq.style.fill = "var(--liquid)"; liq.style.transform = "translateY(240px)";
+      lg.appendChild(liq); g.appendChild(lg);
+      var out = document.createElementNS(NS, "path"); out.setAttribute("d", d); out.setAttribute("fill", "none");
+      out.setAttribute("stroke-width", "3"); out.setAttribute("stroke-linejoin", "round"); out.setAttribute("class", "outline");
+      out.style.stroke = "var(--glass)"; g.appendChild(out);
+      var mk = document.createElementNS(NS, "line");
+      mk.setAttribute("x1", x - 3); mk.setAttribute("x2", x + TW + 3); mk.setAttribute("y1", MARK); mk.setAttribute("y2", MARK);
+      mk.setAttribute("stroke-width", "2"); mk.style.stroke = "var(--glass)"; g.appendChild(mk);
+      var cp2 = document.createElementNS(NS, "rect");
+      cp2.setAttribute("x", x - 3); cp2.setAttribute("y", 8); cp2.setAttribute("width", TW + 6); cp2.setAttribute("height", 16); cp2.setAttribute("rx", 4);
+      cp2.setAttribute("class", "cap"); cp2.style.fill = "var(--glass)"; cp2.style.opacity = 0; g.appendChild(cp2);
+      t.appendChild(g);
+
+      var dr = document.createElementNS(NS, "circle");
+      dr.setAttribute("cx", cx); dr.setAttribute("cy", 0); dr.setAttribute("r", 5);
+      dr.style.fill = "var(--liquid-edge)"; dr.style.opacity = 0; t.appendChild(dr);
+
+      var t1 = document.createElementNS(NS, "text");
+      t1.setAttribute("x", cx); t1.setAttribute("y", 212); t1.setAttribute("text-anchor", "middle");
+      t1.style.font = "700 13px var(--font)"; t1.style.fill = "var(--ink)"; t1.textContent = lab[0]; t.appendChild(t1);
+      if (lab[1]) {
+        var t2 = document.createElementNS(NS, "text");
+        t2.setAttribute("x", cx); t2.setAttribute("y", 230); t2.setAttribute("text-anchor", "middle");
+        t2.style.font = "500 11px var(--mono)"; t2.style.fill = "var(--muted)"; t2.textContent = lab[1]; t.appendChild(t2);
+      }
+      tubeEls.push({ g: g, liq: liq, out: out, cap: cp2, drop: dr });
+    });
+  })();
+
+  /* ---------- levels ---------- */
+  function flaskY(f) {
+    if (f <= 0) return 310;
+    if (f <= 0.9) return 296 - (f / 0.9) * 146;
+    return 150 - ((f - 0.9) / 0.1) * 80;
+  }
+  function tubeY(v) { return v <= 0 ? 240 : TIP - Math.min(v / 50, 1) * (TIP - MARK); }
+  function targets(s) { return s.to === ALL ? [0, 1, 2, 3, 4, 5, 6] : (s.to || []); }
+  function tubeVols(n) {
+    var st = STATIONS[2], v = [0, 0, 0, 0, 0, 0, 0];
+    for (var k = 0; k < n; k++) {
+      var s = st.steps[k];
+      if (s.kind === "fill") v = v.map(function () { return 50; });
+      else if (s.vol) targets(s).forEach(function (t) { v[t] += Math.max(s.vol, 1.3); });
+    }
+    return v;
+  }
+  function fillIndex(st) { return st.steps.findIndex(function (s) { return s.kind === "fill"; }); }
+
+  function setVisual(i) {
+    var st = STATIONS[i], n = state.done[i];
+    var isTubes = st.type === "tubes";
+    $("flaskwrap").hidden = isTubes;
+    $("tubewrap").hidden = !isTubes;
+    var capped = n > fillIndex(st);
+    if (!isTubes) {
+      var lvl = n === 0 ? 0 : st.steps[n - 1].level;
+      liquid.style.transform = "translateY(" + flaskY(lvl) + "px)";
+      cap.style.opacity = capped ? 1 : 0;
+    } else {
+      var v = tubeVols(n), cur = st.steps[n], hi = cur ? targets(cur) : [];
+      tubeEls.forEach(function (te, k) {
+        te.liq.style.transform = "translateY(" + tubeY(v[k]) + "px)";
+        te.cap.style.opacity = capped ? 1 : 0;
+        te.out.style.stroke = hi.indexOf(k) >= 0 && !mixing ? "var(--accent)" : "var(--glass)";
+        te.out.setAttribute("stroke-width", hi.indexOf(k) >= 0 ? "4" : "3");
+      });
+    }
+  }
+
+  /* ---------- animations ---------- */
+  function playStep(i, s, n) {
+    if (!canAnimate) return 0;
+    var st = STATIONS[i];
+    if (st.type === "flask") {
+      var toY = flaskY(s.level);
+      if (s.kind === "add") {
+        drop.style.opacity = 1;
+        drop.animate([{ transform: "translateY(0px)" }, { transform: "translateY(" + (toY - 4) + "px)" }], { duration: 450, easing: "ease-in" })
+          .onfinish = function () { drop.style.opacity = 0; };
+        return 380;
+      }
+      if (s.kind === "pour" || s.kind === "fill") {
+        stream.setAttribute("height", toY);
+        stream.animate([{ opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }], { duration: 1100 });
+        return 150;
+      }
+      return 0;
+    }
+    if (s.kind === "add" || s.kind === "pour" || s.kind === "fill") {
+      var after = tubeVols(n + 1);
+      targets(s).forEach(function (k, j) {
+        var dr = tubeEls[k].drop;
+        dr.style.opacity = 1;
+        dr.animate([{ transform: "translateY(0px)" }, { transform: "translateY(" + (tubeY(after[k]) - 4) + "px)" }],
+          { duration: 420, delay: j * 40, easing: "ease-in", fill: "backwards" })
+          .onfinish = function () { dr.style.opacity = 0; };
+      });
+      return 350;
+    }
+    return 0;
+  }
+
+  function playMix(i, done) {
+    if (!canAnimate) { done(); return; }
+    var frames = [{ transform: "rotate(0deg)" }, { transform: "rotate(180deg)" }, { transform: "rotate(0deg)" }];
+    var opts = { duration: 240, iterations: FLIPS, easing: "ease-in-out" };
+    var a;
+    if (STATIONS[i].type === "flask") a = svg.animate(frames, opts);
+    else tubeEls.forEach(function (te) { a = te.g.animate(frames, opts); });
+    a.onfinish = done;
+  }
+
+  /* ---------- rendering ---------- */
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function renderTabs() {
+    $("tabs").innerHTML = STATIONS.map(function (st, i) {
+      var finished = state.done[i] === st.steps.length;
+      return '<button class="tab" role="tab" type="button" data-i="' + i + '" aria-selected="' + (state.cur === i) + '">' +
+        (finished ? '<span class="tick" aria-label="done">✓</span>' : "") +
+        esc(st.name) + (st.type === "flask" ? ' <small>' + esc(st.sub) + '</small>' : "") + '</button>';
+    }).join("");
+  }
+
+  function resultTable(st) {
+    return '<table class="result"><thead><tr>' + st.head.map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("") +
+      '</tr></thead><tbody>' + st.result.map(function (r) {
+        return "<tr>" + r.map(function (c) { return "<td>" + esc(c) + "</td>"; }).join("") + "</tr>";
+      }).join("") + "</tbody></table>";
+  }
+
+  function render() {
+    var i = state.cur, st = STATIONS[i], n = state.done[i], total = st.steps.length;
+    renderTabs();
+    $("flaskname").innerHTML = esc(st.name) + "<span>" + esc(st.sub) + "</span>";
+    $("bar").style.width = (n / total * 100) + "%";
+    $("count").textContent = n + " of " + total + " steps done";
+
+    var note = st.note;
+    if (st.needs !== undefined && state.done[st.needs] < STATIONS[st.needs].steps.length) note += ' <span class="warnline">' + esc(st.needsText) + '</span>';
+    $("note").innerHTML = note;
+
+    var cur = $("current");
+    if (n >= total) {
+      cur.className = "current finished";
+      var nextBtn = i < STATIONS.length - 1 ? '<button class="go green" type="button" id="next">Next: ' + esc(STATIONS[i + 1].name) + ' →</button>' : "";
+      cur.innerHTML =
+        '<div class="eyebrow">Done</div>' +
+        '<p class="bigtext">' + esc(st.type === "flask" ? st.sub + " is ready" : "All 7 standards are ready") + '</p>' +
+        resultTable(st) +
+        '<p class="hint">' + esc(st.label) + '</p>' + nextBtn;
+      var nx = $("next");
+      if (nx) nx.onclick = function () { state.cur = i + 1; save(); setVisual(i + 1); render(); };
+    } else {
+      var s = st.steps[n];
+      var head = '<div class="eyebrow">Step ' + (n + 1) + ' of ' + total + '</div><p class="bigtext">' + esc(s.text) + '</p>';
+      if (s.kind === "mix" && mixing) {
+        cur.className = "current";
+        cur.innerHTML = head + '<div class="amt">Mixing…</div><button class="go" type="button" disabled>Turning it over 10×</button>';
+      } else if (s.kind === "mix" && state.confirm[i]) {
+        cur.className = "current asking";
+        cur.innerHTML = head +
+          '<p class="bigtext" style="font-size:1.3rem">You sure? Did you really turn it over 10 times?</p>' +
+          '<div class="pair"><button class="go green" type="button" id="yes">Yes, it’s mixed ✓</button>' +
+          '<button class="small" type="button" id="again">Not yet, mix again</button></div>';
+        $("yes").onclick = function () { state.confirm[i] = false; state.done[i] = n + 1; save(); setVisual(i); render(); };
+        $("again").onclick = runMix;
+      } else if (s.kind === "mix") {
+        cur.className = "current";
+        cur.innerHTML = head + '<div class="amt">10×</div><div class="toolline">' + esc(s.tool) + '</div>' +
+          '<button class="go" type="button" id="go">Mix 10× ↻</button>';
+        $("go").onclick = runMix;
+      } else {
+        cur.className = "current";
+        cur.innerHTML = head +
+          '<div class="amt">' + esc(s.amt) + '</div>' +
+          '<div class="toolline">' + esc(s.tool) + '</div>' +
+          (s.hint ? '<p class="hint">' + esc(s.hint) + '</p>' : "") +
+          '<button class="go" type="button" id="go">Done ✓</button>';
+        $("go").onclick = advance;
+      }
+    }
+
+    $("list").innerHTML = st.steps.map(function (s, k) {
+      var cls = k < n ? "done" : (k === n ? "now" : "");
+      return '<li class="' + cls + '"><span class="num">' + (k < n ? "✓" : (k + 1)) + '</span>' +
+        '<span class="what">' + esc(s.text) + '</span><span class="vol">' + esc(s.amt) + '</span></li>';
+    }).join("");
+
+    $("undo").disabled = mixing || (n === 0 && !state.confirm[i]);
+    $("reset").disabled = mixing;
+  }
+
+  function runMix() {
+    if (mixing) return;
+    var i = state.cur;
+    mixing = true; state.confirm[i] = false; setVisual(i); render();
+    playMix(i, function () { mixing = false; state.confirm[i] = true; save(); setVisual(state.cur); render(); });
+  }
+
+  function advance() {
+    var i = state.cur, st = STATIONS[i], n = state.done[i], s = st.steps[n];
+    if (!s || s.kind === "mix") return;
+    var delay = playStep(i, s, n);
+    state.done[i] = n + 1;
+    save();
+    setTimeout(function () { setVisual(i); }, delay);
+    render();
+  }
+
+  $("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest(".tab");
+    if (!b || mixing) return;
+    state.cur = +b.dataset.i; save(); setVisual(state.cur); render();
+  });
+
+  $("undo").onclick = function () {
+    var i = state.cur;
+    if (state.confirm[i]) state.confirm[i] = false;
+    else if (state.done[i] > 0) state.done[i] -= 1;
+    save(); setVisual(i); render();
+  };
+
+  var resetArmed = null;
+  $("reset").onclick = function () {
+    var btn = $("reset");
+    if (!resetArmed) {
+      btn.textContent = "Tap again to clear " + STATIONS[state.cur].name;
+      btn.classList.add("warn");
+      resetArmed = setTimeout(function () { resetArmed = null; btn.textContent = "Start this one over"; btn.classList.remove("warn"); }, 3000);
+      return;
+    }
+    clearTimeout(resetArmed); resetArmed = null;
+    btn.textContent = "Start this one over"; btn.classList.remove("warn");
+    state.done[state.cur] = 0; state.confirm[state.cur] = false;
+    save(); setVisual(state.cur); render();
+  };
+
+  setVisual(state.cur);
+  render();
+})();
+</script>
+
+</body>
+</html>
